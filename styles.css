@@ -631,3 +631,80 @@ body { overscroll-behavior-y: contain; }                /* kein versehentliches 
   .actions { gap: 6px; }
   .brand { gap: 10px; }
 }
+
+/* ---------- Registerreiter: Themenblock ragt aus der Karte (wie Register im Gesetzbuch) ---------- */
+.stage { padding-top: 20px; }                            /* Platz für den überstehenden Reiter */
+.examwrap { position: relative; }
+.cat-tab {
+  position: absolute; top: 0; left: 22px;
+  transform: translateY(-72%);                           /* Fuß steckt hinter der Karte */
+  max-width: calc(100% - 44px);
+  display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: var(--cat, var(--ink)); color: #fff;
+  font-family: var(--font-mono); font-size: 10.5px; font-weight: 700;
+  letter-spacing: .05em; line-height: 1;
+  padding: 7px 14px 13px;
+  border-radius: 9px 9px 0 0;
+  box-shadow: 0 5px 12px -7px rgba(21, 35, 60, .55);
+}
+[data-theme="oled"] .cat-tab { box-shadow: none; }
+@media (min-width: 760px) { .cat-tab { font-size: 11.5px; left: 26px; padding: 8px 16px 14px; } }
+
+/* ---------- Marker-Look: Leuchtmarker wie von Hand gezogen ---------- */
+.q mark {
+  background: linear-gradient(100deg,
+    transparent 0.5%, var(--hl) 3.5%,
+    var(--hl) 96%, transparent 99.5%);                   /* schräge, auslaufende Enden */
+  border-radius: 0.55em 0.35em 0.6em 0.3em;              /* unregelmäßige Kanten */
+  padding: 0.08em 0.34em 0.14em;
+  margin: 0 -0.12em;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  color: inherit;
+}
+
+/* ---------- Fach-Kachel in der Steuerzeile ---------- */
+.subject-tile {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--card); border: 1.5px solid var(--hair);
+  border-radius: 999px; padding: 5px 13px 5px 12px;
+  min-height: 44px; cursor: pointer; color: var(--ink);
+  font: inherit; touch-action: manipulation;
+  transition: border-color .15s, transform .12s;
+  max-width: 100%;
+}
+.subject-tile:active { transform: scale(.97); }
+@media (hover:hover) { .subject-tile:hover { border-color: var(--ink-soft); } }
+.subject-tile .st-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--muted);
+  border-right: 1px solid var(--hair); padding-right: 9px;
+}
+.subject-tile .st-name { display: inline-flex; align-items: baseline; min-width: 0; }
+.subject-tile .st-sigil { font-family: var(--font-display); font-weight: 800; font-size: 17px; margin-right: 7px; }
+.subject-tile b { font-weight: 700; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subject-tile .chev { font-size: 11px; color: var(--muted); transition: transform .15s; margin-top: 1px; }
+.subject-tile[aria-expanded="true"] { border-color: var(--ink); }
+.subject-tile[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+/* ---------- Karten-Aktionen: ★ merken / ⊘ ausblenden ---------- */
+.meta .badges { flex: 1; }
+.meta .cardacts { display: inline-flex; gap: 2px; margin-right: 8px; }
+.cact {
+  width: 34px; height: 34px; margin: -8px -3px;
+  display: grid; place-items: center;
+  border: 0; background: none; border-radius: 9px;
+  color: var(--muted); cursor: pointer; touch-action: manipulation;
+  transition: color .15s, transform .12s, background .15s;
+}
+.cact:active { transform: scale(.88); }
+@media (hover:hover) { .cact:hover { color: var(--ink); background: var(--paper-2); } }
+.cact.star[aria-pressed="true"] { color: #c2920f; }
+.cact.star[aria-pressed="true"] svg path { fill: currentColor; }
+[data-theme="dark"] .cact.star[aria-pressed="true"], [data-theme="oled"] .cact.star[aria-pressed="true"] { color: #ffc940; }
+.cact.off[aria-pressed="true"] { color: var(--again); }
+
+/* Status-Chip & Filter-Chip für Ausgeblendete */
+.srs-chip.off { border-color: var(--hair-2); color: var(--muted); background: var(--paper-2); }
+.chip.offchip[aria-pressed="true"] {
+  background: var(--again-bg); border-color: var(--again); color: var(--again);
+}

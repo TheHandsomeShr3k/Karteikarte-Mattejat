@@ -10,6 +10,7 @@ const SUBJECTS = [
   {
     id: "aufsicht",
     title: "Versicherungsaufsichtsrecht",
+    short: "Aufsichtsrecht",
     subtitle: "DHBW · BWL Versicherung · Lernkarten",
     sigil: "§",
     cats: {
@@ -33,6 +34,7 @@ const SUBJECTS = [
   {
     id: "risiko",
     title: "Risikomanagement & Rückversicherung",
+    short: "Risikomanagement",
     subtitle: "DHBW · Mattejat · Lernkarten",
     sigil: "σ",
     tags: {

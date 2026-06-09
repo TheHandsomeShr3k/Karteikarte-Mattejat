@@ -43,6 +43,8 @@
   var sched = store.get("kk-sched-v1", {});              // "fach:deck:id" -> {ease, ivl(min), due(ms), reps, lapses, last}
   var answers = store.get("kk-answers", {});
   var log = store.get("kk-log-v1", {});                  // "JJJJ-MM-TT" -> Anzahl Bewertungen
+  var marks = store.get("kk-marks-v1", {});              // "fach:deck:id" -> { star: true, off: true }
+  var starFilter = false, hiddenFilter = false;          // ★ nur Gemerkte / ⊘ Ausgeblendete zeigen
   var undoState = null;                                  // Snapshot der letzten Bewertung
   var countdownTimer = null;
 
@@ -72,6 +74,7 @@
   var shuffleBtn = $("#shuffle"), dueBtn = $("#onlyUnknown"), resetBtn = $("#reset"), undoBtn = $("#undo"), themeBtn = $("#theme");
   var deckSeg = $("#deckSeg"), modeSeg = $("#modeSeg");
   var brandBtn = $("#subjectBtn"), subjMenu = $("#subjectMenu");
+  var subjectTile = $("#subjectTile"), tileSigil = $("#tileSigil"), tileName = $("#tileName");
   var sigilEl = $("#sigil"), titleEl = $("#subjTitle"), subEl = $("#subjSub");
   var searchBtn = $("#searchBtn"), searchBar = $("#searchbar"), searchInput = $("#searchInput"), searchClose = $("#searchClose");
   var statsBtn = $("#statsBtn"), panelOverlay = $("#panelOverlay"), panelEl = $("#panel"), importFile = $("#importFile");
@@ -98,6 +101,9 @@
         return act.every(function (t) { return tg.indexOf(t) >= 0; });
       });
     }
+    if (starFilter) items = items.filter(isStarred);
+    if (hiddenFilter) items = items.filter(isHidden);
+    else if (!query) items = items.filter(function (c) { return !isHidden(c); });
     if (query) items = items.filter(matchesQuery);
     return items;
   }
@@ -114,8 +120,20 @@
     c.tags.forEach(function (t) { if (defs[t]) out += '<span class="badge" title="' + esc(defs[t].label) + '">' + defs[t].icon + "</span>"; });
     return out ? '<span class="badges">' + out + "</span>" : "";
   }
+  function tabHTML(c) {
+    return '<span class="cat-tab">' + esc(tagFor(c)) + "</span>";
+  }
+  function actsHTML(c) {
+    var st = isStarred(c), off = isHidden(c);
+    return '<span class="cardacts">' +
+      '<button type="button" class="cact star" data-act="star" aria-pressed="' + st + '" aria-label="' + (st ? "Markierung entfernen" : "Karte merken") + '" title="Merken (zum gezielten Üben)">' +
+        '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2.8l2.85 5.85 6.45.9-4.7 4.5 1.15 6.35L12 17.4l-5.75 3 1.15-6.35-4.7-4.5 6.45-.9z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>' +
+      '<button type="button" class="cact off" data-act="off" aria-pressed="' + off + '" aria-label="' + (off ? "Karte wieder einblenden" : "Karte ausblenden") + '" title="Ausblenden (nicht mehr vorschlagen)">' +
+        '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="8.1" fill="none" stroke="currentColor" stroke-width="1.7"/><line x1="6.6" y1="17.4" x2="17.4" y2="6.6" stroke="currentColor" stroke-width="1.7"/></svg></button>' +
+    "</span>";
+  }
   function metaHTML(c) {
-    return '<div class="meta"><span class="tag">' + esc(tagFor(c)) + "</span>" + badgesHTML(c) + '<span class="pos">#' + c.id + "</span></div>";
+    return '<div class="meta">' + (badgesHTML(c) || '<span class="badges"></span>') + actsHTML(c) + '<span class="pos">#' + c.id + "</span></div>";
   }
 
   // ---------- Scheduling (SM-2) ----------
@@ -126,6 +144,26 @@
   function dueOf(c) { var s = getSched(c); return (s && s.ivl) ? s.due : 0; } // neue Karten => 0 (zuerst)
   function isDue(c) { var s = getSched(c); return !s || !s.ivl || s.due <= Date.now(); }
   function isDueIn(dk, c) { var s = sched[skeyOf(dk, c)]; return !s || !s.ivl || s.due <= Date.now(); }
+  function markOf(c) { return marks[skey(c)] || {}; }
+  function isStarred(c) { return !!markOf(c).star; }
+  function isHidden(c) { return !!markOf(c).off; }
+  function isHiddenIn(dk, c) { var m = marks[skeyOf(dk, c)]; return !!(m && m.off); }
+  function toggleMark(act) {
+    var c = deck[idx]; if (!c || (act !== "star" && act !== "off")) return;
+    var k = skey(c), m = marks[k] || {};
+    m[act] = !m[act];
+    if (!m.star && !m.off) delete marks[k]; else marks[k] = m;
+    store.set("kk-marks-v1", marks);
+    if (act === "off" && m.off && !hiddenFilter) {
+      // Karte verlässt die Sitzung sofort
+      undoState = null;
+      deck.splice(idx, 1);
+      if (idx >= deck.length) idx = Math.max(0, deck.length - 1);
+      revealed = false;
+      finished = deck.length === 0;
+    }
+    renderFilters(); render();
+  }
   function clampEase(e) { return e < EASE_MIN ? EASE_MIN : e; }
 
   // Vorschau: welches Intervall (Minuten) ergäbe diese Bewertung – ohne den Zustand zu ändern
@@ -204,7 +242,7 @@
   function buildDeck(shuffle) {
     undoState = null; syncUndo();
     var items = scope();
-    var pool = (onlyDue && !query) ? items.filter(isDue) : items.slice();  // Suche zeigt alle Treffer
+    var pool = (onlyDue && !query && !hiddenFilter) ? items.filter(isDue) : items.slice();  // Suche/⊘-Blick zeigen alle
     pool.sort(function (a, b) { return dueOf(a) - dueOf(b); });        // nach Fälligkeit; neue (0) zuerst
     if (shuffle) for (var i = pool.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
     deck = pool;
@@ -217,6 +255,8 @@
     if (sigilEl) sigilEl.textContent = s.sigil || "§";
     if (titleEl) titleEl.textContent = s.title;
     if (subEl) subEl.textContent = s.subtitle || "";
+    if (tileSigil) tileSigil.textContent = s.sigil || "§";
+    if (tileName) tileName.textContent = s.short || s.title;
     document.title = s.title + " — Lernkarten";
   }
   function totalOf(s) {
@@ -250,15 +290,16 @@
       b.addEventListener("click", function () { setSubject(b.getAttribute("data-s")); closeMenu(); });
     });
   }
-  function openMenu() { if (!subjMenu) return; renderSubjectMenu(); subjMenu.hidden = false; if (brandBtn) brandBtn.setAttribute("aria-expanded", "true"); }
-  function closeMenu() { if (!subjMenu) return; subjMenu.hidden = true; if (brandBtn) brandBtn.setAttribute("aria-expanded", "false"); }
+  function setExpanded(v) { [brandBtn, subjectTile].forEach(function (b) { if (b) b.setAttribute("aria-expanded", v); }); }
+  function openMenu() { if (!subjMenu) return; renderSubjectMenu(); subjMenu.hidden = false; setExpanded("true"); }
+  function closeMenu() { if (!subjMenu) return; subjMenu.hidden = true; setExpanded("false"); }
   function toggleMenu() { if (subjMenu) subjMenu.hidden ? openMenu() : closeMenu(); }
   function setSubject(id) {
     if (!subjById(id) || id === subjectId) return;
     saveField();
     subjectId = id; store.set("kk-subject", subjectId);
     if (!decksOf()[deckKey]) deckKey = "cards";
-    filter = "all"; tagFilter = {};
+    filter = "all"; tagFilter = {}; starFilter = false; hiddenFilter = false;
     closeSearch(true);
     renderBrand(); syncDeckLabels();
     buildDeck(false); renderFilters(); render();
@@ -297,7 +338,7 @@
       var dk = b.getAttribute("data-deck"), d = decksOf()[dk];
       b.style.display = d ? "" : "none";
       if (!d) return;
-      var due = (d.items || []).filter(function (c) { return isDueIn(dk, c); }).length;
+      var due = (d.items || []).filter(function (c) { return !isHiddenIn(dk, c) && isDueIn(dk, c); }).length;
       b.innerHTML = esc(d.label || dk) + (due ? ' <span class="n">' + due + "</span>" : "");
     });
   }
@@ -328,21 +369,35 @@
   }
   function renderTagFilters() {
     if (!tagFiltersEl) return;
-    var defs = subj().tags;
-    if (deckKey !== "cards" || !defs) { tagFiltersEl.style.display = "none"; tagFiltersEl.innerHTML = ""; return; }
+    var html = "", defs = subj().tags;
+    var items = curDeckDef().items || [];
+    if (deckKey === "cards" && defs) {
+      var all = decksOf().cards.items;
+      Object.keys(defs).forEach(function (t) {
+        var n = all.filter(function (c) { return (c.tags || []).indexOf(t) >= 0; }).length;
+        if (!n) return;
+        html += '<button class="chip tagchip" data-t="' + t + '" aria-pressed="' + !!tagFilter[t] + '" title="' + esc(defs[t].hint || "") + '">' +
+          defs[t].icon + " " + esc(defs[t].label) + ' <span class="n">' + n + "</span></button>";
+      });
+    }
+    var nStar = items.filter(isStarred).length;
+    var nOff  = items.filter(isHidden).length;
+    if (nStar) html += '<button class="chip tagchip" data-sys="star" aria-pressed="' + starFilter + '" title="Nur gemerkte Karten üben">★ Gemerkt <span class="n">' + nStar + "</span></button>";
+    if (nOff)  html += '<button class="chip offchip" data-sys="off" aria-pressed="' + hiddenFilter + '" title="Ausgeblendete ansehen und reaktivieren">⊘ Ausgeblendet <span class="n">' + nOff + "</span></button>";
+    if (!html) { tagFiltersEl.style.display = "none"; tagFiltersEl.innerHTML = ""; return; }
     tagFiltersEl.style.display = "";
-    var all = decksOf().cards.items, html = "";
-    Object.keys(defs).forEach(function (t) {
-      var n = all.filter(function (c) { return (c.tags || []).indexOf(t) >= 0; }).length;
-      if (!n) return;
-      html += '<button class="chip tagchip" data-t="' + t + '" aria-pressed="' + !!tagFilter[t] + '" title="' + esc(defs[t].hint || "") + '">' +
-        defs[t].icon + " " + esc(defs[t].label) + ' <span class="n">' + n + "</span></button>";
-    });
     tagFiltersEl.innerHTML = html;
-    Array.prototype.forEach.call(tagFiltersEl.querySelectorAll(".tagchip"), function (b) {
+    Array.prototype.forEach.call(tagFiltersEl.querySelectorAll("[data-t]"), function (b) {
       b.addEventListener("click", function () {
         var t = b.getAttribute("data-t");
         tagFilter[t] = !tagFilter[t];
+        buildDeck(false); renderFilters(); render();
+      });
+    });
+    Array.prototype.forEach.call(tagFiltersEl.querySelectorAll("[data-sys]"), function (b) {
+      b.addEventListener("click", function () {
+        if (b.getAttribute("data-sys") === "star") starFilter = !starFilter;
+        else hiddenFilter = !hiddenFilter;
         buildDeck(false); renderFilters(); render();
       });
     });
@@ -366,6 +421,7 @@
 
   // ---- Status-Chip auf der Karte ----
   function chipHTML(c) {
+    if (isHidden(c)) return '<span class="srs-chip off">Ausgeblendet</span>';
     var s = getSched(c);
     if (!s || !s.ivl) return '<span class="srs-chip new">Neu</span>';
     if (s.due <= Date.now()) return '<span class="srs-chip due">Fällig</span>';
@@ -385,7 +441,7 @@
   // ---- Card content (single surface) ----
   function surfaceHTML(c, showAnswer) {
     if (!showAnswer) {
-      return '<div class="surface">' +
+      return tabHTML(c) + '<div class="surface">' +
         metaHTML(c) +
         chipHTML(c) +
         '<div class="role">Frage</div>' +
@@ -393,7 +449,7 @@
         '<div class="hint">Tippen oder <kbd>Leertaste</kbd> → Lösung</div>' +
       "</div>";
     }
-    return '<div class="surface">' +
+    return tabHTML(c) + '<div class="surface">' +
       metaHTML(c) +
       chipHTML(c) +
       '<div class="role ans">' + (deckKey === "exam" ? "Musterlösung" : "Antwort") + "</div>" +
@@ -420,7 +476,7 @@
         surfaceHTML(c, revealed) +
       "</div>";
     var card = $("#card");
-    if (card) card.addEventListener("click", function (e) { if (!e.target.closest("a")) flip(); });
+    if (card) card.addEventListener("click", function (e) { if (!e.target.closest("a,.cact")) flip(); });
     renderPreviews(c);
   }
 
@@ -443,12 +499,15 @@
     }
     var role = deckKey === "exam" ? (curDeckDef().roleLabel || "Prüfungsfrage") : "Prüfungsfrage";
     stageEl.innerHTML =
-      '<div class="examcard surface" id="card" style="--cat:' + col + '">' +
-        metaHTML(c) +
-        chipHTML(c) +
-        '<div class="role">' + esc(role) + "</div>" +
-        '<div class="q">' + fmt(c.q, "mark") + "</div>" +
-        body +
+      '<div class="examwrap" style="--cat:' + col + '">' +
+        tabHTML(c) +
+        '<div class="examcard surface" id="card">' +
+          metaHTML(c) +
+          chipHTML(c) +
+          '<div class="role">' + esc(role) + "</div>" +
+          '<div class="q">' + fmt(c.q, "mark") + "</div>" +
+          body +
+        "</div>" +
       "</div>";
     var f = $("#examField");
     if (f) f.addEventListener("input", function () { answers[ansKey(c)] = f.value; });
@@ -635,25 +694,29 @@
   function startOfToday() { var d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
   function subjStats() {
     var s = subj(), now = Date.now();
-    var total = 0, neu = 0, due = 0, planned = 0, perDeck = [];
+    var total = 0, neu = 0, due = 0, planned = 0, hidden = 0, perDeck = [];
     Object.keys(decksOf(s)).forEach(function (dk) {
-      var d = decksOf(s)[dk], dDue = 0, dPlanned = 0;
+      var d = decksOf(s)[dk], dDue = 0, dPlanned = 0, dHid = 0;
       (d.items || []).forEach(function (c) {
         total++;
+        var mk = marks[s.id + ":" + dk + ":" + c.id];
+        if (mk && mk.off) { hidden++; dHid++; return; }
         var e = sched[s.id + ":" + dk + ":" + c.id];
         if (!e || !e.ivl) { neu++; due++; dDue++; }
         else if (e.due <= now) { due++; dDue++; }
         else { planned++; dPlanned++; }
       });
-      perDeck.push({ label: d.label || dk, total: (d.items || []).length, due: dDue, planned: dPlanned });
+      perDeck.push({ label: d.label || dk, total: (d.items || []).length, due: dDue, planned: dPlanned, hidden: dHid });
     });
-    return { total: total, neu: neu, due: due, planned: planned, perDeck: perDeck };
+    return { total: total, neu: neu, due: due, planned: planned, hidden: hidden, perDeck: perDeck };
   }
   function upcoming7() {
     var s = subj(), now = Date.now(), t0 = startOfToday();
     var counts = [0, 0, 0, 0, 0, 0, 0];
     Object.keys(decksOf(s)).forEach(function (dk) {
       (decksOf(s)[dk].items || []).forEach(function (c) {
+        var mk = marks[s.id + ":" + dk + ":" + c.id];
+        if (mk && mk.off) return;                                       // ausgeblendet zählt nicht
         var e = sched[s.id + ":" + dk + ":" + c.id];
         if (!e || !e.ivl || e.due <= now) { counts[0]++; return; }      // neu + (über)fällig => heute
         var off = Math.floor((e.due - t0) / DAY);
@@ -692,8 +755,11 @@
     var totalReviews = 0; Object.keys(log).forEach(function (k) { totalReviews += log[k]; });
     var deckLines = "";
     st.perDeck.forEach(function (d) {
-      deckLines += '<div class="deckline"><span>' + esc(d.label) + "</span><b>" + d.due + " fällig · " + d.planned + " / " + d.total + " geplant</b></div>";
+      deckLines += '<div class="deckline"><span>' + esc(d.label) + "</span><b>" + d.due + " fällig · " + d.planned + " / " + d.total + " geplant" + (d.hidden ? " · " + d.hidden + " ⊘" : "") + "</b></div>";
     });
+    var starsTotal = 0;
+    Object.keys(marks).forEach(function (k) { if (k.indexOf(subjectId + ":") === 0 && marks[k].star) starsTotal++; });
+    deckLines += '<div class="deckline"><span>Markierungen</span><b>' + starsTotal + " ★ gemerkt · " + st.hidden + " ⊘ ausgeblendet</b></div>";
     panelEl.innerHTML =
       '<div class="p-head"><div><h2 id="panelTitle">Statistik &amp; Daten</h2><p class="p-sub">' + esc(subj().title) + "</p></div></div>" +
 
@@ -721,7 +787,7 @@
         '<button class="btn primary" id="p-export" type="button">Lernstand exportieren</button>' +
         '<button class="btn ghost" id="p-import" type="button">Importieren …</button>' +
       "</div>" +
-      '<p class="p-note">Der Lernstand liegt nur in diesem Browser. Die Export-Datei (JSON) enthält Planung, Prüfungs-Antworten und Aktivität <b>aller Fächer</b> — z. B. für den Umzug vom iPhone aufs iPad.</p>' +
+      '<p class="p-note">Der Lernstand liegt nur in diesem Browser. Die Export-Datei (JSON) enthält Planung, ★/⊘-Markierungen, Prüfungs-Antworten und Aktivität <b>aller Fächer</b> — z. B. für den Umzug vom iPhone aufs iPad.</p>' +
       (msg ? '<p class="p-msg' + (isErr ? " err" : "") + '">' + esc(msg) + "</p>" : "") +
 
       "<h3>Tastatur</h3>" +
@@ -747,9 +813,9 @@
 
   function exportData() {
     var payload = {
-      app: "karteikarten-laue", version: 2,
+      app: "karteikarten-laue", version: 3,
       exported: new Date().toISOString(),
-      sched: sched, answers: answers, log: log
+      sched: sched, answers: answers, log: log, marks: marks
     };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     var a = document.createElement("a");
@@ -774,9 +840,11 @@
       sched = p.sched || {};
       answers = p.answers || {};
       log = p.log || {};
+      marks = p.marks || {};
       store.set("kk-sched-v1", sched);
       store.set("kk-answers", answers);
       store.set("kk-log-v1", log);
+      store.set("kk-marks-v1", marks);
       buildDeck(false); renderFilters(); render();
       renderPanel("Lernstand importiert ✓");
     };
@@ -797,6 +865,7 @@
   on(undoBtn, "click", doUndo);
 
   on(brandBtn, "click", function (e) { e.stopPropagation(); toggleMenu(); });
+  on(subjectTile, "click", function (e) { e.stopPropagation(); toggleMenu(); });
   on(searchBtn, "click", toggleSearch);
   on(searchClose, "click", function () { closeSearch(); });
   on(searchInput, "input", onSearchInput);
@@ -812,7 +881,7 @@
   document.addEventListener(outsideEv, function (e) {
     if (!subjMenu || subjMenu.hidden) return;
     var t = e.target;
-    if (t && t.closest && (t.closest("#subjectMenu") || t.closest("#subjectBtn"))) return;
+    if (t && t.closest && (t.closest("#subjectMenu") || t.closest("#subjectBtn") || t.closest("#subjectTile"))) return;
     closeMenu();
   }, { passive: true });
 
@@ -820,7 +889,7 @@
     b.addEventListener("click", function () {
       saveField();
       deckKey = b.getAttribute("data-deck"); store.set("kk-deck", deckKey);
-      filter = "all"; tagFilter = {};
+      filter = "all"; tagFilter = {}; starFilter = false; hiddenFilter = false;
       closeSearch(true);
       buildDeck(false); renderFilters(); render();
     });
@@ -879,6 +948,14 @@
     else if (k.toLowerCase() === "s") { buildDeck(true); render(); }
     else if (k.toLowerCase() === "t" && themeBtn) themeBtn.click();
     else if (k.toLowerCase() === "f") cycleSubject();
+  });
+
+  // ---- Karten-Aktionen (Delegation) ----
+  on(stageEl, "click", function (e) {
+    var b = e.target && e.target.closest ? e.target.closest(".cact") : null;
+    if (!b) return;
+    e.stopPropagation();
+    toggleMark(b.getAttribute("data-act"));
   });
 
   // ---- Swipe (Touch) ----

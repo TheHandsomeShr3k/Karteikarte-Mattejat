@@ -56,13 +56,22 @@ Der Lernstand wird je **Fach und Stapel** lokal im Browser gespeichert (`localSt
 
 Lupe oben rechts (oder `/`): durchsucht Frage **und** Antwort des aktuellen Stapels, kombinierbar mit Block- und Spezialfiltern. Während der Suche werden alle Treffer gezeigt (auch nicht fällige).
 
+## Merken & Ausblenden
+
+Jede Karte hat oben zwei Aktionen:
+
+- **★ Merken** — markiert die Karte für eine eigene Übungsauswahl. Sobald etwas gemerkt ist, erscheint in der Filterzeile der Chip **„★ Gemerkt"**: antippen und du übst nur deine markierten Karten (kombinierbar mit Blöcken und Spezialfiltern).
+- **⊘ Ausblenden** — nimmt die Karte komplett aus dem Lernbetrieb (kein Vorschlag mehr, zählt nicht als fällig). Über den Chip **„⊘ Ausgeblendet"** siehst du alle ausgeblendeten Karten und kannst sie per erneutem Tipp auf ⊘ reaktivieren. Die Suche findet ausgeblendete Karten weiterhin.
+
+Beide Markierungen werden je Fach und Stapel gespeichert und sind in der Export-Datei enthalten.
+
 ## Statistik, Sicherung & Rückgängig
 
 Das Balken-Symbol oben rechts öffnet das Panel **Statistik & Daten**:
 
 - **Lernstand** des Fachs (gesamt / neu / fällig / geplant, je Stapel)
 - **Fällig in den nächsten 7 Tagen** und **Aktivität** der letzten 7 Tage inkl. **Lern-Serie** 🔥
-- **Export/Import**: Der Lernstand liegt nur im Browser (`localStorage`). Die Export-Datei (JSON) enthält Planung, Prüfungs-Antworten und Aktivität **aller Fächer** — damit ziehst du z. B. vom iPhone aufs iPad um.
+- **Export/Import**: Der Lernstand liegt nur im Browser (`localStorage`). Die Export-Datei (JSON) enthält Planung, ★/⊘-Markierungen, Prüfungs-Antworten und Aktivität **aller Fächer** — damit ziehst du z. B. vom iPhone aufs iPad um.
 
 **↶ Rückgängig** (oder `Z`) nimmt die letzte Bewertung zurück — falls man sich vertippt hat.
 
