@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
+  <title>Lernkarten — DHBW</title>
+  <meta name="description" content="Interaktive Karteikarten & Prüfungsfragen — DHBW BWL Versicherung. Mehrere Fächer, ein Lernstand je Fach." />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#f1ece1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Spectral:ital,wght@0,500;0,600;0,700;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="masthead">
+      <div class="subject-wrap">
+        <button class="brand" id="subjectBtn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Fach wechseln">
+          <span class="sigil" id="sigil" aria-hidden="true">§</span>
+          <div>
+            <h1 id="subjTitle">Lernkarten</h1>
+            <p id="subjSub">DHBW</p>
+          </div>
+          <span class="chev" aria-hidden="true">▾</span>
+        </button>
+        <div class="subject-menu" id="subjectMenu" role="listbox" aria-label="Fächer" hidden></div>
+      </div>
+      <button class="icon-btn" id="theme" type="button" aria-label="Dunkles Design">☾</button>
+    </header>
+
+    <div class="segs">
+      <div class="seg" id="deckSeg" role="group" aria-label="Stapel">
+        <button type="button" data-deck="cards" aria-pressed="true">Karteikarten</button>
+        <button type="button" data-deck="exam" aria-pressed="false">Prüfungsfragen</button>
+      </div>
+      <div class="seg" id="modeSeg" role="group" aria-label="Modus">
+        <button type="button" data-mode="learn" aria-pressed="true">Lernen</button>
+        <button type="button" data-mode="exam" aria-pressed="false">Prüfung</button>
+      </div>
+    </div>
+
+    <nav class="filters" id="filters" aria-label="Themenblöcke"></nav>
+    <nav class="filters tagrow" id="tagfilters" aria-label="Spezialfilter"></nav>
+
+    <div class="statusbar">
+      <div class="progress" role="progressbar" aria-label="Gelernt"><i id="bar"></i></div>
+      <span class="counter" id="counter"></span>
+    </div>
+
+    <div class="tools">
+      <button class="btn ghost" id="shuffle" type="button">⤨ Mischen</button>
+      <button class="btn ghost" id="onlyUnknown" type="button" aria-pressed="true">Alle zeigen</button>
+      <button class="btn ghost" id="reset" type="button">Zurücksetzen</button>
+    </div>
+
+    <div class="board">
+      <section class="stage" id="stage" aria-live="polite"></section>
+
+      <div class="dock">
+        <div class="dock-inner">
+          <div class="row">
+            <button class="btn square" id="prev" type="button" aria-label="Zurück">←</button>
+            <button class="btn primary grow" id="flip" type="button">Lösung zeigen</button>
+            <button class="btn square" id="next" type="button" aria-label="Weiter">→</button>
+          </div>
+          <div class="row rates">
+            <button class="btn rate r-again" id="r-again" type="button"><span class="t">Nochmal</span><small id="iv-again">–</small></button>
+            <button class="btn rate r-hard"  id="r-hard"  type="button"><span class="t">Schwer</span><small id="iv-hard">–</small></button>
+            <button class="btn rate r-good"  id="r-good"  type="button"><span class="t">Gut</span><small id="iv-good">–</small></button>
+            <button class="btn rate r-easy"  id="r-easy"  type="button"><span class="t">Einfach</span><small id="iv-easy">–</small></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="foot">
+      <b>Leertaste</b> aufdecken · <b>← →</b> blättern · <b>1</b> Nochmal · <b>2</b> Schwer · <b>3</b> Gut · <b>4</b> Einfach
+    </p>
+  </main>
+
+  <script src="cards.js"></script>
+  <script src="cards-risiko.js"></script>
+  <script src="subjects.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
