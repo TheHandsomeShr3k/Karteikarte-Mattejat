@@ -32,6 +32,26 @@ const SUBJECTS = [
     }
   },
   {
+    id: "laue-alt",
+    title: "Laue/Alternativ",
+    short: "Laue/Alternativ",
+    subtitle: "Aufsichtsrecht & Vertrieb · ausführliche Karten",
+    sigil: "⚖",
+    cats: {
+      "A": { label: "Grundlagen",                color: "#3f6fb0" },
+      "B": { label: "Aufbau der Aufsicht",       color: "#7a5bb0" },
+      "C": { label: "Rechtsquellen & Solvency II", color: "#1f8a8a" },
+      "D": { label: "Versicherungsgeschäfte",    color: "#a14d86" },
+      "E": { label: "Zulassungsaufsicht",        color: "#c0612e" },
+      "F": { label: "Laufende Aufsicht",         color: "#b0463f" },
+      "G": { label: "Vertrieb",                  color: "#a8852a" },
+      "H": { label: "Jahresbericht 2024",        color: "#4f7d3a" }
+    },
+    decks: {
+      cards: { label: "Karteikarten", items: (typeof LAUE_CARDS !== "undefined" ? LAUE_CARDS : []), cats: true }
+    }
+  },
+  {
     id: "risiko",
     title: "Risikomanagement & Rückversicherung",
     short: "Risikomanagement",
