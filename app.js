@@ -808,9 +808,13 @@
   on(panelOverlay, "click", function (e) { if (e.target === panelOverlay) closePanel(); });
   on(importFile, "change", function () { importData(importFile.files && importFile.files[0]); importFile.value = ""; });
 
-  document.addEventListener("click", function (e) {
-    if (subjMenu && !subjMenu.hidden && !e.target.closest("#subjectMenu") && !e.target.closest("#subjectBtn")) closeMenu();
-  });
+  var outsideEv = ("PointerEvent" in window || typeof PointerEvent !== "undefined") ? "pointerdown" : "touchstart";
+  document.addEventListener(outsideEv, function (e) {
+    if (!subjMenu || subjMenu.hidden) return;
+    var t = e.target;
+    if (t && t.closest && (t.closest("#subjectMenu") || t.closest("#subjectBtn"))) return;
+    closeMenu();
+  }, { passive: true });
 
   if (deckSeg) Array.prototype.forEach.call(deckSeg.children, function (b) {
     b.addEventListener("click", function () {
