@@ -22,6 +22,12 @@ Unter den Themenblöcken gibt es zusätzliche Filter-Chips, kombinierbar mit den
 - **🧮 Rechenkarten** — Formel + Rechenweg + Interpretation
 - **⚠️ Hinweise** — Stellen, an denen die Original-Unterlage unstimmig ist
 
+## Als App installieren (PWA)
+
+Die Seite ist eine **Progressive Web App**: In Safari **Teilen → Zum Home-Bildschirm** (iPhone/iPad) bzw. in Chrome/Edge **Installieren**. Danach startet sie wie eine native App (eigenes Icon, Vollbild) und funktioniert **komplett offline** — ein Service Worker hält alle Dateien und Schriften im Cache.
+
+> Beim Veröffentlichen von Inhalts-Updates die `VERSION` in `sw.js` hochzählen, damit installierte Apps den neuen Stand laden.
+
 ## Zwei Modi
 
 - **Lernen** — Karte antippen / Leertaste → Lösung aufdecken (Flip)
@@ -46,11 +52,25 @@ Jede Karte wird einzeln terminiert. Nach dem Aufdecken bewertest du mit vier But
 
 Der Lernstand wird je **Fach und Stapel** lokal im Browser gespeichert (`localStorage`); bestehende Lernstände aus der Ein-Fach-Version werden beim ersten Start automatisch übernommen.
 
+## Suche
+
+Lupe oben rechts (oder `/`): durchsucht Frage **und** Antwort des aktuellen Stapels, kombinierbar mit Block- und Spezialfiltern. Während der Suche werden alle Treffer gezeigt (auch nicht fällige).
+
+## Statistik, Sicherung & Rückgängig
+
+Das Balken-Symbol oben rechts öffnet das Panel **Statistik & Daten**:
+
+- **Lernstand** des Fachs (gesamt / neu / fällig / geplant, je Stapel)
+- **Fällig in den nächsten 7 Tagen** und **Aktivität** der letzten 7 Tage inkl. **Lern-Serie** 🔥
+- **Export/Import**: Der Lernstand liegt nur im Browser (`localStorage`). Die Export-Datei (JSON) enthält Planung, Prüfungs-Antworten und Aktivität **aller Fächer** — damit ziehst du z. B. vom iPhone aufs iPad um.
+
+**↶ Rückgängig** (oder `Z`) nimmt die letzte Bewertung zurück — falls man sich vertippt hat.
+
 ## Bedienung
 
 - **Nur fällige / Alle Karten** umschalten · **Mischen** · **Zurücksetzen** (setzt die Planung des aktuellen Stapels zurück)
 - **Wischen** links/rechts zum Blättern (Touch)
-- Tastatur: `Leertaste` aufdecken · `← →` blättern · `1` Nochmal · `2` Schwer · `3` Gut · `4` Einfach · `S` Mischen · `T` Design · `F` Fach wechseln
+- Tastatur: `Leertaste` aufdecken · `← →` blättern · `1`–`4` bewerten · `Z` rückgängig · `/` suchen · `S` Mischen · `T` Design · `F` Fach wechseln
 - Drei Designs per Tipp auf das Symbol oben rechts: **Hell → Dunkel → OLED**
 
 ### OLED-Darkmode
@@ -59,12 +79,12 @@ Eigenes Design mit **echtem Schwarz (#000)** für Seite und Karten, damit die Pi
 
 ## Dateien
 
-`index.html` · `styles.css` · `app.js` · `subjects.js` (Fächer-Manifest) · `cards.js` (Aufsichtsrecht) · `cards-risiko.js` (Risikomanagement)
+`index.html` · `styles.css` · `app.js` · `subjects.js` (Fächer-Manifest) · `cards.js` (Aufsichtsrecht) · `cards-risiko.js` (Risikomanagement) · `manifest.webmanifest` + `sw.js` + `icons/` (PWA)
 
 ## Auf GitHub Pages veröffentlichen
 
 1. Repository anlegen (z. B. `versicherungsaufsicht-karten`).
-1. Die vier Dateien ins **Repo-Root** hochladen (`index.html` muss im Root liegen).
+1. Alle Dateien (inkl. `icons/`-Ordner) ins **Repo-Root** hochladen (`index.html` muss im Root liegen).
 1. **Settings → Pages → Source: „Deploy from a branch” → `main` / `/ (root)` → Save**.
 1. Nach ein paar Minuten: `https://<benutzername>.github.io/<repo>/`.
 
